@@ -22,12 +22,12 @@ function connectWLEDWebSocket() {
     });
 }
 
-// Trigger WLED Effects
-function triggerWLEDEffect(effect) {
+// Trigger WLED Preset
+function triggerWLEDPreset(presetId) {
     if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify(effect));
+        ws.send(JSON.stringify({ ps: presetId })); // Send preset ID to WLED
     } else {
-        console.error('WLED WebSocket is not open. Cannot trigger WLED effect.');
+        console.error('WLED WebSocket is not open. Cannot trigger WLED preset.');
     }
 }
 
@@ -44,7 +44,12 @@ function connectTwitchPubSub() {
             type: 'LISTEN',
             nonce: 'randomstring',
             data: {
-                topics: [`channel-subscribe-events-v1.${BROADCASTER_USER_ID}`],
+                topics: [
+                    `channel-subscribe-events-v1.${BROADCASTER_USER_ID}`,
+                    `channel-bits-events-v2.${BROADCASTER_USER_ID}`,
+                    `channel-points-channel-v1.${BROADCASTER_USER_ID}`,
+                    `hype-train-events-v1.${BROADCASTER_USER_ID}`
+                ],
                 auth_token: TWITCH_ACCESS_TOKEN
             }
         }));
@@ -75,16 +80,19 @@ function connectTwitchPubSub() {
 function handleTwitchEvent(event) {
     console.log('Twitch Event Received:', event);
 
-    // Check the event type and trigger corresponding effects
-    if (event.context === 'sub') {
-        // Subscription event
-        triggerWLEDEffect({ effect: 'rainbow', speed: 50 });
-    } else if (event.context === 'cheer') {
-        // Cheer (bits) event
-        triggerWLEDEffect({ effect: 'strobe', color: [255, 0, 0] });
-    } else if (event.context === 'follow') {
-        // Follow event
-        triggerWLEDEffect({ effect: 'glitter', color: [0, 255, 0] });
+    // Map Twitch events to WLED preset IDs
+    if (event.type === 'channel-subscribe-events-v1') {
+        console.log('Subscription Event:', event);
+        triggerWLEDPreset(1); // Example: Preset ID 1 for subscriptions
+    } else if (event.type === 'channel-bits-events-v2') {
+        console.log('Cheer (Bits) Event:', event);
+        triggerWLEDPreset(2); // Example: Preset ID 2 for bits
+    } else if (event.type === 'channel-points-channel-v1') {
+        console.log('Channel Points Redemption Event:', event);
+        triggerWLEDPreset(3); // Example: Preset ID 3 for channel points
+    } else if (event.type === 'hype-train-events-v1') {
+        console.log('Hype Train Event:', event);
+        triggerWLEDPreset(4); // Example: Preset ID 4 for hype train
     } else {
         console.log('Unhandled event:', event);
     }
@@ -97,3 +105,4 @@ function startTwitchListener() {
 }
 
 module.exports = { startTwitchListener };
+
